@@ -1,0 +1,147 @@
+clear all
+close all
+clc
+
+format short 
+
+%--------------------------------------------------------------------------
+%
+%                             Digital Control
+%
+%--------------------------------------------------------------------------
+% Author: Frederico Vaz
+% email: fredvaz8@gmail.com
+% November 2018; Last revision:
+%--------------------------------------------------------------------------
+%
+% Description: Controlo por realimentação das variáveis de estado 
+%
+%--------------------------------------------------------------------------
+%
+% References:
+%
+%--------------------------------------------------------------------------
+
+%% Problema 7.2
+
+% Pretende-se controlar por computador um sistema contínuo que possui o 
+% modelo de estado contínuo:
+
+A = [  0  1; -2 -3 ]; 
+B = [ 0; 4];
+C = [ 1 0 ];  % acesso a variável de estado 1
+C1 = [ 0 1 ]; % acesso a variável de estado 2
+D = 0;
+
+% Período de Amostragem [s]
+h = 0.1; % 0.05;
+
+% a) e b) O Modelo de Estado Discreto usando o Matlab:
+[ phi, gama ] = c2d(A, B, h);
+
+% matrizes usadas no bloco ?State-Space model? no modelo Simulink
+% para simular o caso de todas as variáveis de estado acessíveis
+Ca = [1 0; 0 1]; Da = [0; 0];
+
+
+%% a) Calcule a matriz de transição de estados
+syms s t
+
+% Matriz Identidade
+I = eye(size(A));
+
+phi_s = inv(s*I - A)
+phi_t = ilaplace(sym(phi_s), s, t)
+
+
+%% b) Calcule o modelo de estado do sistema equivalente discreto
+
+phi_t_h = eval(subs(phi_t, t, h))
+gama_h = eval(int(phi_t, t, 0, h))*B
+
+
+%% c) Calcule os ganhos de realimentação das variáveis de estado, p/
+
+% Os pólos
+z1 = 0.4 + 0.3i;
+z2 = 0.4;           % Pólo Duplo           
+
+% Dinâmica de regulação z1,2 = a +-jb 
+
+a = 0.4; b = 0.3;     % Pólo z1
+% b=0; %Para pólo duplo em z = 0.4
+
+% Do polinómio característico z^2 + p1 x z + p2 vêm que:
+p1 = -2 * a; 
+p2 = a^2 + b^2; 
+
+% Matriz de controlabilidade
+Wc = [ gama phi * gama ];
+
+% Ganhos de realimentação das varíaveis de estado
+% obtidos pela fórmula de Ackermann
+
+L = [0 1] * inv(Wc) * (phi^2 + p1 * phi + p2 * eye(2))
+phic = phi - gama * L;
+
+% Ganho de avanço Lc
+Lc = 1/( C * inv(eye(2) - phic ) * gama )
+
+
+%% Simulação
+sim('SimulinkP7_2.slx');
+
+% Curva da Resposta y(t) e y(k) e da variável de estado interno
+subplot(2,1,1)
+plot(yc.time,yc.signals.values,'k',yk.time,yk.signals.values,'ro-');
+xlabel('tempo (s)'); ylabel('amplitude')
+grid on
+title('Para h = 0.1');
+
+% Curva da Resposta y(t) da variável de estado interno x2(t)
+subplot(2,1,2)
+plot(yc1.time,yc1.signals.values,'k',x2.time,x2.signals.values,'r');
+xlabel('tempo (s)'); ylabel('amplitude')
+grid on
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
